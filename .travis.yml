@@ -18,7 +18,7 @@ install:
       mkdir -p /tmp/vsftpd/empty
       mkdir /tmp/ftp
       ./vsftpd ../tests/vsftpd.conf &
-      curl -v ftp://localhost:2121/
+      cd ..
       if [ "$LFTP_SUPPORT" -eq 1 ]; then sudo apt-get install -y lftp; fi
     fi
   - >
@@ -33,7 +33,7 @@ install:
 before_script:
   - git config --global user.email "you@example.com"
   - git config --global user.name "Your Name"
-  - export GIT_FTP_ROOT=0.0.0.0/pub
+  - export GIT_FTP_ROOT=localhost/pub
   - export GIT_FTP_USER=ftp
   - export GIT_FTP_PASSWD=ftp
   - export TEST_CASES=test_inits
