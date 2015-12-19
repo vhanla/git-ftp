@@ -12,6 +12,7 @@ install:
   - >
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
       sudo apt-get install -y vsftpd
+      cat /etc/vsftpd.conf
       echo write_enable=YES | sudo tee -a /etc/vsftpd.conf
       echo anon_upload_enable=YES | sudo tee -a /etc/vsftpd.conf
       echo anon_mkdir_write_enable=YES | sudo tee -a /etc/vsftpd.conf
