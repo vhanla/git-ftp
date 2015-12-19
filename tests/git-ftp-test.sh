@@ -620,8 +620,6 @@ test_file_with_nonchar() {
 
 # issue #209
 test_file_with_unicode() {
-	printf '%%%02x\n' "'ä"
-	printf '%%%02X\n' "'ä"
 	supports_unicode || startSkipping
 	file1='umlaut_ä.md'
 	file1enc='umlaut_%C3%A4.md'
