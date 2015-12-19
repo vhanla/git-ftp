@@ -1,9 +1,7 @@
 os:
   - linux
-  - osx
 
 env:
-  - LFTP_SUPPORT=1
   - LFTP_SUPPORT=0
 
 language: sh
@@ -35,11 +33,13 @@ install:
 before_script:
   - git config --global user.email "you@example.com"
   - git config --global user.name "Your Name"
-  - export GIT_FTP_ROOT=localhost/pub
+  - export GIT_FTP_ROOT=127.0.0.1/pub
   - export GIT_FTP_USER=ftp
   - export GIT_FTP_PASSWD=ftp
+  - export TEST_CASES=test_inits
 
 script:
+  - ping -c 1 localhost || echo failed
   - tests/git-ftp-test.sh
 
 after_failure:
