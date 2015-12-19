@@ -18,8 +18,7 @@ install:
       mkdir -p /tmp/vsftpd/empty
       mkdir /tmp/ftp
       ./vsftpd ../tests/vsftpd.conf &
-      whoami
-      curl -v ftp://localhost:2121/
+      curl -v ftp://travis@localhost:2121/
       if [ "$LFTP_SUPPORT" -eq 1 ]; then sudo apt-get install -y lftp; fi
     fi
   - >
