@@ -627,6 +627,10 @@ test_file_with_unicode() {
 	git add .
 	git commit -a -m 'added special filenames' -q
 	init=$($GIT_FTP init)
+	echo "$init"
+	ls -l
+	curl "$CURL_URL/"
+	curl -v "$CURL_URL/$remote"
 	assertTrue " file $file1 not uploaded" "remote_file_equals '$file1' '$file1enc'"
 	git rm "$file1" -q
 	git commit -m 'delete' -q
