@@ -148,12 +148,11 @@ test_push_unknown_commit() {
 }
 
 test_push_nothing() {
-	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
 	# make some changes
 	echo "1" >> "./test 1.txt"
 	git commit -a -m "change" > /dev/null 2>&1
-	push=$($GIT_FTP push --dry-run)
+	push=$($GIT_FTP push --dry-run -vv)
 	assertEquals 0 $?
 	assertTrue "$push" "echo \"$push\" | grep '1 file to sync:'"
 	echo 'test 1.txt' >> .git-ftp-ignore
