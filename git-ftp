@@ -691,20 +691,11 @@ handle_file_sync() {
 		print_info "There are no files to sync."
 		return
 	fi
-	echo 'upload:'
-	cat "$TMP_GITFTP_UPLOAD" | sed "s/[\x00]/NUL/g"
-	echo 'delete:'
-	cat "$TMP_GITFTP_DELETE" | sed "s/[\x00]/NUL/g"
 	sort -z -u -o "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_UPLOAD"
 	sort -z -u -o "$TMP_GITFTP_DELETE" "$TMP_GITFTP_DELETE"
-	echo 'sorted.'
-	echo 'upload:'
-	cat "$TMP_GITFTP_UPLOAD" | sed "s/[\x00]/NUL/g"
-	echo 'delete:'
-	cat "$TMP_GITFTP_DELETE" | sed "s/[\x00]/NUL/g"
 	# Calculate total file count
 	local DONE_ITEMS=0
-	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | sed "s/[^\x00]//g" |wc -c)
+	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | tr -d -c '\0' |wc -c)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 	print_info "$TOTAL_ITEMS file$([ $TOTAL_ITEMS -ne 1 ] && echo 's') to sync:"
 
