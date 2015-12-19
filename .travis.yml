@@ -11,15 +11,14 @@ install:
   - sudo chmod a+rwx /var/ftp/pub
   - >
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-      sudo apt-get install -y vsftpd
-      cat /etc/vsftpd.conf
-      echo write_enable=YES | sudo tee -a /etc/vsftpd.conf
-      echo anon_upload_enable=YES | sudo tee -a /etc/vsftpd.conf
-      echo anon_mkdir_write_enable=YES | sudo tee -a /etc/vsftpd.conf
-      echo anon_umask=000 | sudo tee -a /etc/vsftpd.conf
-      echo anon_other_write_enable=YES | sudo tee -a /etc/vsftpd.conf
-      echo anon_root=/var/ftp | sudo tee -a /etc/vsftpd.conf
-      sudo service vsftpd restart
+      wget https://security.appspot.com/downloads/vsftpd-3.0.3.tar.gz
+      tar xzf vsftpd-3.0.3.tar.gz
+      cd vsftpd-3.0.3
+      make
+      mkdir -p /tmp/vsftpd/empty
+      mkdir /tmp/ftp
+      ./vsftpd ../tests/vsftpd.conf &
+      curl ftp://localhost:2121/
       if [ "$LFTP_SUPPORT" -eq 1 ]; then sudo apt-get install -y lftp; fi
     fi
   - >
@@ -34,14 +33,14 @@ install:
 before_script:
   - git config --global user.email "you@example.com"
   - git config --global user.name "Your Name"
-  - export GIT_FTP_ROOT=127.0.0.1/pub
+  - export GIT_FTP_ROOT=0.0.0.0/pub
   - export GIT_FTP_USER=ftp
   - export GIT_FTP_PASSWD=ftp
   - export TEST_CASES=test_inits
 
 script:
-  - ping -c 1 localhost || echo failed
   - tests/git-ftp-test.sh
 
 after_failure:
+  - ls -la /tmp/ftp/*
   - ls -la /var/ftp/pub/*
