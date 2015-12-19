@@ -407,7 +407,7 @@ upload_file_buffered() {
 		DEST_FILE="${SRC_FILE#$SYNCROOT}"
 	fi
 
-	local ENC_DEST_FILE="$(encode_hash "$DEST_FILE")"
+	local ENC_DEST_FILE="$(urlencode "$DEST_FILE" '[-_.~a-zA-Z0-9/]')"
 	echo "-T \"./$SRC_FILE\"" >> "$TMP_CURL_UPLOAD_FILE"
 	echo "url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> "$TMP_CURL_UPLOAD_FILE"
 }
@@ -961,7 +961,7 @@ urlencode() {
 		c=${string:$pos:1}
 		case "$c" in
 			$keepset ) o="${c}" ;;
-			* )        printf -v o '%%%02x' "'$c"
+			* )        printf -v o '%%%02X' "'$c"
 		esac
 		encoded+="${o}"
 	done
