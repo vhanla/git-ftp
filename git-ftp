@@ -65,6 +65,7 @@ TMP_GITFTP=""
 TMP_GITFTP_UPLOAD=""
 TMP_GITFTP_DELETE=""
 TMP_GITFTP_INCLUDE=""
+GITUTF8QUOTESTATUS=""
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -204,7 +205,7 @@ SET DEFAULTS
 	. git config git-ftp.keychain user@example.com
 
 
-SET SCOPE DEFAULTS 
+SET SCOPE DEFAULTS
 	e.g. your scope is 'testing'
 	. git config git-ftp.testing.url ftp.example.local
 
@@ -409,8 +410,21 @@ upload_file_buffered() {
 	fi
 
 	local ENC_DEST_FILE="$(urlencode "$DEST_FILE" '[-_.~a-zA-Z0-9/]')"
-	echo "-T \"./$SRC_FILE\"" >> "$TMP_CURL_UPLOAD_FILE"
-	echo "url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> "$TMP_CURL_UPLOAD_FILE"
+
+	file_path="$(pwd)/$SRC_FILE"
+	#detect MINGW32_NT-6.2 to change $OSTYPE=msys on windows using bash from msys git
+	if [[ "$OSTYPE"=="msys" ]]; then
+	#we are on Windows and WPUT exe needs full path like c:\s\etc instead of /c/s/etc
+		#change / to \
+		file_path="${file_path//\//\\}"
+		#first lets get the drive letter
+		BASEDIR="$(echo "$file_path" | cut -d "\\" -f2)"
+		#the lefting part of it
+		LEFTDIR="${file_path:3}"
+		#join
+		file_path="$BASEDIR:\\$LEFTDIR"
+	fi
+	echo "$file_path" >> "$TMP_CURL_UPLOAD_FILE"
 }
 
 fire_upload_buffer() {
@@ -421,7 +435,15 @@ fire_upload_buffer() {
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=(-K "$TMP_CURL_UPLOAD_FILE")
-	curl "${CURL_ARGS[@]}"
+	#curl "${CURL_ARGS[@]}"
+	base_path="$(pwd)"
+	if [[ "$OSTYPE"=="msys" ]]; then
+		base_path="${base_path//\//\\}"
+		BASEDIR="$(echo "$base_path" | cut -d "\\" -f2)"
+		LEFTDIR="${base_path:3}"
+		base_path="$BASEDIR:\\$LEFTDIR"
+	fi
+	wput "$REMOTE_BASE_URL/${REMOTE_PATH}" -i "$TMP_CURL_UPLOAD_FILE" --basename="$base_path" --reupload --dont-continue -v
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
 }
 
@@ -716,9 +738,9 @@ handle_file_sync() {
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 	print_info "$TOTAL_ITEMS file$([ $TOTAL_ITEMS -ne 1 ] && echo 's') to sync:"
 
-	while read FILE_ITERATOR; do
+	while read FILE_NAME; do #FILE_ITERATOR; do
 		(( DONE_ITEMS++ ))
-		FILE_NAME="$(decode_filename "$FILE_ITERATOR")"
+		#FILE_NAME="$(decode_filename "$FILE_ITERATOR")"
 		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for upload '$FILE_NAME'."
 		if is_submodule "$FILE_NAME"; then
 			handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
@@ -728,9 +750,9 @@ handle_file_sync() {
 	done < "$TMP_GITFTP_UPLOAD"
 	fire_upload_buffer
 
-	while read FILE_ITERATOR; do
+	while read FILE_NAME; do #ITERATOR; do
 		(( DONE_ITEMS++ ))
-		FILE_NAME="$(decode_filename "$FILE_ITERATOR")"
+		#FILE_NAME="$(decode_filename "$FILE_ITERATOR")"
 		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for delete '$FILE_NAME'."
 		if [ $DRY_RUN -ne 1 ]; then
 			local file="${FILE_NAME#$SYNCROOT}"
@@ -750,6 +772,9 @@ decode_filename() {
 	decoded="${decoded/%\"/}"
 	echo "$decoded"
 }
+
+#make git UTF-8 aware
+
 
 handle_submodule_sync() {
 	print_info "Handling submodule sync for $1."
@@ -813,7 +838,7 @@ set_submodule_args() {
 handle_remote_protocol_options() {
 	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
 		set_sftp_config
-		
+
 		if [ ! -z "$CURL_PRIVATE_KEY" ]; then
 			write_log "Using ssh private key file $CURL_PRIVATE_KEY"
 			if [ -z "$CURL_PUBLIC_KEY" ]; then
@@ -823,7 +848,7 @@ handle_remote_protocol_options() {
 			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
 			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
 		fi
-		
+
 		# SFTP uses a different remove command and uses absolute paths
 		REMOTE_DELETE_CMD="rm /"
 	fi
@@ -950,7 +975,7 @@ set_remotes() {
 		write_log "No password is set."
 	else
 		write_log "Password is set."
-	fi 
+	fi
 
 	local REMOTE_LOGIN=''
 	local DISPLAY_LOGIN=''
@@ -976,7 +1001,7 @@ set_remotes() {
 
 	set_remote_cacert
 	write_log "CACert is '$REMOTE_CACERT'."
-	
+
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
 }
@@ -1268,10 +1293,23 @@ check_lftp_available() {
 # Main
 # ------------------------------------------------------------
 main() {
+	# https://github.com/msysgit/msysgit/wiki/Git-for-Windows-Unicode-Support lets enable utf8, since git 1.7.10 supports
+	GITUTF8QUOTESTATUS="$(git config core.quotepath)"
+	if [[ "$GITUTF8QUOTESTATUS"=="" ]];
+	then
+	    # "Enable GIT UTF8"
+	    git config core.quotepath off
+	elif [[ "$GITUTF8QUOTESTATUS"=="on" ]];
+	then
+	    # "Enable GIT UTF8"
+	    git config core.quotepath off
+	fi
 	cache_git_submodules
 	handle_action
 	cleanup
 	print_error_log
+	#restore git core quotepath
+    	git config core.quotepath "$GITUTF8QUOTESTATUS"
 	exit 0
 }
 
